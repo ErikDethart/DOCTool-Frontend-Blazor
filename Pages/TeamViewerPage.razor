@@ -1,0 +1,69 @@
+﻿@page "/teamviewer"
+@inject ClipboardService ClipboardService
+
+@using BlazorApp.Data
+
+<head>
+    <style>
+        tr:nth-child(even) {background-color: #f2f2f2;}
+    </style>
+</head>
+
+
+<h1>TeamViewer ID's</h1>
+
+<p>Uploaded from imaged computers, update in <a href='https://inventory.optumserve.com/Search.aspx'>HW inventory</a>.</p>
+
+@if (TeamViewers == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Hostname</th>
+                <th>Asset Tag</th>
+                <th>TeamViewer ID</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var teamviewer in TeamViewers)
+            {
+                <tr>
+                    <td>@teamviewer.HostName</td>
+                    <td>@("LHI" + teamviewer.HostName.Substring(3)) <button class="btn btn-primary" @onclick='() =>CopyToClipboard("LHI" + teamviewer.HostName.Substring(3))'>📋 Copy</button></td>
+                    <td>@teamviewer.TeamViewerID <button class="btn btn-primary" @onclick='() => CopyToClipboard(teamviewer.TeamViewerID)'>📋 Copy</button></td>
+                    <td><button class="btn btn-primary" @onclick="() => Delete(teamviewer)">❌ Delete</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Inject]
+    public ITeamViewerService TeamViewService { get; set; }
+
+    public List<TeamViewer> TeamViewers { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TeamViewers = (await TeamViewService.GetIDsAsync()).ToList();
+    }
+
+    private async Task Delete(TeamViewer teamViewer) {
+        await TeamViewService.Delete(teamViewer.HostName);
+        TeamViewers.Remove(teamViewer);
+    }
+
+    private async Task CopyToClipboard(String text) {
+        try{
+            await ClipboardService.WriteTextAsync(text);
+        } catch {
+            Console.WriteLine("Cannot write to clipboard");
+        }
+    }
+}
